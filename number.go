@@ -27,11 +27,14 @@ var (
 
 // UnexpectedRuneError is returned if a functions finds a rune that it does not expect.
 type UnexpectedRuneError struct {
-	Rune rune
+	Actual, Expected rune
 }
 
 func (e *UnexpectedRuneError) Error() string {
-	return fmt.Sprintf("unexpected rune: %s", string(e.Rune))
+	if e.Expected != 0 {
+		return fmt.Sprintf("unexpected rune: expected %s, actual %s", string(e.Expected), string(e.Actual))
+	}
+	return fmt.Sprintf("unexpected rune: %s", string(e.Actual))
 }
 
 func (e *UnexpectedRuneError) Unwrap() error {

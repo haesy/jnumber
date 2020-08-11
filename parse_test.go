@@ -143,8 +143,8 @@ func TestParseUintUnexpectedRune(t *testing.T) {
 		t.Errorf("expected: %v, actual: %v, result: %d", ErrUnexpectedRune, err, value)
 	}
 	result, ok := err.(*UnexpectedRuneError)
-	if ok && expectedRune != result.Rune {
-		t.Errorf("expected: %s, actual: %s, result: %d", string(expectedRune), string(result.Rune), value)
+	if ok && expectedRune != result.Actual {
+		t.Errorf("expected: %s, actual: %s, result: %d", string(expectedRune), string(result.Actual), value)
 	}
 }
 
@@ -155,16 +155,14 @@ func TestParseUintUnexpectedRuneAfterValid(t *testing.T) {
 		t.Errorf("expected: %v, actual: %v, result: %d", ErrUnexpectedRune, err, value)
 	}
 	result, ok := err.(*UnexpectedRuneError)
-	if ok && expectedRune != result.Rune {
-		t.Errorf("expected: %s, actual: %s, result: %d", string(expectedRune), string(result.Rune), value)
+	if ok && expectedRune != result.Actual {
+		t.Errorf("expected: %s, actual: %s, result: %d", string(expectedRune), string(result.Actual), value)
 	}
 }
 
-func TestParseUintMissingMultiplier(t *testing.T) {
+func TestParseUintError(t *testing.T) {
+	testParseUintError(t, "", ErrEmpty)
 	testParseUintError(t, "京", ErrInvalidSequence)
-}
-
-func TestParseUintInvalidSequence(t *testing.T) {
 	testParseUintError(t, "一一", ErrInvalidSequence)
 	testParseUintError(t, "一二", ErrInvalidSequence)
 	testParseUintError(t, "二一", ErrInvalidSequence)
@@ -174,13 +172,12 @@ func TestParseUintInvalidSequence(t *testing.T) {
 	testParseUintError(t, "十一二", ErrInvalidSequence)
 	testParseUintError(t, "十百", ErrInvalidSequence)
 	testParseUintError(t, "十千", ErrInvalidSequence)
-}
-
-func TestParseUintEmpty(t *testing.T) {
-	testParseUintError(t, "", ErrEmpty)
-}
-
-func TestParseUintEncodingError(t *testing.T) {
+	testParseUintError(t, "十千", ErrInvalidSequence)
+	testParseUintError(t, "十千", ErrInvalidSequence)
+	testParseUintError(t, "一〇", ErrInvalidSequence)
+	testParseUintError(t, "一零", ErrInvalidSequence)
+	testParseUintError(t, "〇一", ErrUnexpectedRune)
+	testParseUintError(t, "零一", ErrUnexpectedRune)
 	testParseUintError(t, string(utf8.RuneError), ErrEncoding)
 	testParseUintError(t, string(utf8.RuneError)+"一", ErrEncoding)
 	testParseUintError(t, "一"+string(utf8.RuneError), ErrEncoding)

@@ -148,6 +148,7 @@ func (p *parser) endSegment() error {
 func (p *parser) parse(s string) error {
 	n := len(s)
 	i := 0
+loop:
 	for ; i < n-2; i += 3 {
 		r := decodeUtf8Kanji(i, s)
 		value, ok := ValueOf(r)
@@ -165,9 +166,10 @@ func (p *parser) parse(s string) error {
 			switch r {
 			case '零', '〇':
 				if i == 0 {
-					return nil
+					i += 3
+					break loop
 				}
-				return &UnexpectedRuneError{r}
+				return ErrInvalidSequence
 			// 10^20 - 10^68 overflows uint64
 			// only the first kanji for multi kanji numbers
 			case '垓', '秭', '穣', '溝',
@@ -192,7 +194,7 @@ func checkUnexpectedRune(s string) error {
 	case utf8.RuneError:
 		return ErrEncoding
 	default:
-		return &UnexpectedRuneError{r}
+		return &UnexpectedRuneError{r, 0}
 	}
 }
 
