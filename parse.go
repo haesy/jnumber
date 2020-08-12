@@ -33,7 +33,10 @@ func ParseUint(s string) (uint64, error) {
 	if s == "" {
 		return 0, ErrEmpty
 	}
-	parser := parser{}
+	parser := parser{
+		minSegmentEndDigit: math.MaxUint64,
+		minSegmentDigit:    math.MaxUint64,
+	}
 	err := parser.parse(s)
 	if err != nil {
 		return 0, err
@@ -46,6 +49,10 @@ func ParseUint(s string) (uint64, error) {
 type parser struct {
 	// current sum
 	sum uint64
+	// min digit >= 一万 that ends a segment
+	minSegmentEndDigit uint64
+	// min digit >= 十 of the current segment
+	minSegmentDigit uint64
 	// holds digit until we know what to do with them
 	segment [16]uint64
 	// position in the segment array for the next digit
@@ -61,6 +68,7 @@ func (p *parser) append(digit uint64) {
 // clearSegment clears the current segment to start parsing a new segment.
 func (p *parser) clearSegment() {
 	p.segmentIndex = 0
+	p.minSegmentDigit = math.MaxUint64
 }
 
 // push integrates a new digit to the current segment.
@@ -68,6 +76,11 @@ func (p *parser) push(digit uint64) error {
 	if p.segmentIndex == 0 {
 		p.append(digit)
 		return nil
+	} else if digit >= i十 {
+		if digit >= p.minSegmentDigit {
+			return ErrInvalidSequence
+		}
+		p.minSegmentDigit = digit
 	}
 	lastIndex := p.segmentIndex - 1
 	lastDigit := p.segment[lastIndex]
@@ -92,9 +105,10 @@ func (p *parser) push(digit uint64) error {
 
 // endSegmentWith is a combination of push() and endSegment() for digits >= 万 (10000).
 func (p *parser) endSegmentWith(digit uint64) error {
-	if p.segmentIndex == 0 {
+	if p.segmentIndex == 0 || p.minSegmentEndDigit <= digit {
 		return ErrInvalidSequence
 	}
+	p.minSegmentEndDigit = digit
 	var multiplierSum uint64
 	var lastDigit uint64
 	for i := 0; i < p.segmentIndex; i++ {

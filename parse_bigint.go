@@ -33,6 +33,10 @@ func ParseBigInt(s string) (*big.Int, error) {
 type bigIntParser struct {
 	// current sum
 	sum *big.Int
+	// min digit >= 一万 that ends a segment
+	minSegmentEndDigit *big.Int
+	// min digit >= 十 of the current segment
+	minSegmentDigit *big.Int
 	// holds digit until we know what to do with them
 	segment [16]big.Int
 	// position in the segment array for the next digit
@@ -48,6 +52,7 @@ func (p *bigIntParser) append(digit *big.Int) {
 // clearSegment clears the current segment to start parsing a new segment.
 func (p *bigIntParser) clearSegment() {
 	p.segmentIndex = 0
+	p.minSegmentDigit = nil
 }
 
 // push integrates a new digit to the current segment.
@@ -55,6 +60,11 @@ func (p *bigIntParser) push(digit *big.Int) error {
 	if p.segmentIndex == 0 {
 		p.append(digit)
 		return nil
+	} else if digit.Cmp(&b十) >= 0 {
+		if p.minSegmentDigit != nil && digit.Cmp(p.minSegmentDigit) >= 0 {
+			return ErrInvalidSequence
+		}
+		p.minSegmentDigit = digit
 	}
 	lastIndex := p.segmentIndex - 1
 	lastDigit := &p.segment[lastIndex]
@@ -79,9 +89,10 @@ func (p *bigIntParser) push(digit *big.Int) error {
 
 // endSegmentWith is a combination of push() and endSegment() for digits >= 万 (10000).
 func (p *bigIntParser) endSegmentWith(digit *big.Int) error {
-	if p.segmentIndex == 0 {
+	if p.segmentIndex == 0 || (p.minSegmentEndDigit != nil && p.minSegmentEndDigit.Cmp(digit) <= 0) {
 		return ErrInvalidSequence
 	}
+	p.minSegmentEndDigit = digit
 	var multiplierSum big.Int
 	var lastDigit *big.Int
 	for i := 0; i < p.segmentIndex; i++ {

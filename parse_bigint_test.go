@@ -132,6 +132,10 @@ func TestParseBigIntError(t *testing.T) {
 	testParseBigIntError(t, "一零", ErrInvalidSequence)
 	testParseBigIntError(t, "〇一", ErrUnexpectedRune)
 	testParseBigIntError(t, "零一", ErrUnexpectedRune)
+	testParseBigIntError(t, "二十一十", ErrInvalidSequence)
+	testParseBigIntError(t, "一十二十", ErrInvalidSequence)
+	testParseBigIntError(t, "一万二万", ErrInvalidSequence)
+	testParseBigIntError(t, "二万一万", ErrInvalidSequence)
 	// 恒河沙
 	testParseBigIntError(t, "一恒", ErrEOF)
 	testParseBigIntError(t, "一恒a", ErrUnexpectedRune)
