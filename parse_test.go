@@ -99,6 +99,38 @@ var parseCases = []parseTestCase{
 	{"壱万", 10_000},
 }
 
+type parseErrorTestCase struct {
+	Text     string
+	Expected error
+}
+
+var parseErrorCases = []parseErrorTestCase{
+	{"", ErrEmpty},
+	{"京", ErrInvalidSequence},
+	{"一一", ErrInvalidSequence},
+	{"一二", ErrInvalidSequence},
+	{"二一", ErrInvalidSequence},
+	{"二一十", ErrInvalidSequence},
+	{"一二十", ErrInvalidSequence},
+	{"十二一", ErrInvalidSequence},
+	{"十一二", ErrInvalidSequence},
+	{"十百", ErrInvalidSequence},
+	{"十千", ErrInvalidSequence},
+	{"十千", ErrInvalidSequence},
+	{"十千", ErrInvalidSequence},
+	{"一〇", ErrInvalidSequence},
+	{"一零", ErrInvalidSequence},
+	{"〇一", ErrUnexpectedRune},
+	{"零一", ErrUnexpectedRune},
+	{"二十一十", ErrInvalidSequence},
+	{"一十二十", ErrInvalidSequence},
+	{"一万二万", ErrInvalidSequence},
+	{"二万一万", ErrInvalidSequence},
+	{string(utf8.RuneError), ErrEncoding},
+	{string(utf8.RuneError) + "一", ErrEncoding},
+	{"一" + string(utf8.RuneError), ErrEncoding},
+}
+
 func TestParseInt(t *testing.T) {
 	for _, tc := range parseCases {
 		t.Run(tc.Text, func(t *testing.T) {
@@ -161,30 +193,9 @@ func TestParseUintUnexpectedRuneAfterValid(t *testing.T) {
 }
 
 func TestParseUintError(t *testing.T) {
-	testParseUintError(t, "", ErrEmpty)
-	testParseUintError(t, "京", ErrInvalidSequence)
-	testParseUintError(t, "一一", ErrInvalidSequence)
-	testParseUintError(t, "一二", ErrInvalidSequence)
-	testParseUintError(t, "二一", ErrInvalidSequence)
-	testParseUintError(t, "二一十", ErrInvalidSequence)
-	testParseUintError(t, "一二十", ErrInvalidSequence)
-	testParseUintError(t, "十二一", ErrInvalidSequence)
-	testParseUintError(t, "十一二", ErrInvalidSequence)
-	testParseUintError(t, "十百", ErrInvalidSequence)
-	testParseUintError(t, "十千", ErrInvalidSequence)
-	testParseUintError(t, "十千", ErrInvalidSequence)
-	testParseUintError(t, "十千", ErrInvalidSequence)
-	testParseUintError(t, "一〇", ErrInvalidSequence)
-	testParseUintError(t, "一零", ErrInvalidSequence)
-	testParseUintError(t, "〇一", ErrUnexpectedRune)
-	testParseUintError(t, "零一", ErrUnexpectedRune)
-	testParseUintError(t, "二十一十", ErrInvalidSequence)
-	testParseUintError(t, "一十二十", ErrInvalidSequence)
-	testParseUintError(t, "一万二万", ErrInvalidSequence)
-	testParseUintError(t, "二万一万", ErrInvalidSequence)
-	testParseUintError(t, string(utf8.RuneError), ErrEncoding)
-	testParseUintError(t, string(utf8.RuneError)+"一", ErrEncoding)
-	testParseUintError(t, "一"+string(utf8.RuneError), ErrEncoding)
+	for _, tc := range parseErrorCases {
+		testParseUintError(t, tc.Text, tc.Expected)
+	}
 }
 
 func testParseUintError(t *testing.T, str string, expectedErr error) {

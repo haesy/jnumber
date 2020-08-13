@@ -115,27 +115,9 @@ func TestParseBigInt(t *testing.T) {
 }
 
 func TestParseBigIntError(t *testing.T) {
-	testParseBigIntError(t, "", ErrEmpty)
-	testParseBigIntError(t, "a", ErrUnexpectedRune)
-	testParseBigIntError(t, "一a", ErrUnexpectedRune)
-	testParseBigIntError(t, "一一", ErrInvalidSequence)
-	testParseBigIntError(t, "一二", ErrInvalidSequence)
-	testParseBigIntError(t, "二一", ErrInvalidSequence)
-	testParseBigIntError(t, "垓", ErrInvalidSequence)
-	testParseBigIntError(t, "二一十", ErrInvalidSequence)
-	testParseBigIntError(t, "一二十", ErrInvalidSequence)
-	testParseBigIntError(t, "十二一", ErrInvalidSequence)
-	testParseBigIntError(t, "十一二", ErrInvalidSequence)
-	testParseBigIntError(t, "十百", ErrInvalidSequence)
-	testParseBigIntError(t, "十千", ErrInvalidSequence)
-	testParseBigIntError(t, "一〇", ErrInvalidSequence)
-	testParseBigIntError(t, "一零", ErrInvalidSequence)
-	testParseBigIntError(t, "〇一", ErrUnexpectedRune)
-	testParseBigIntError(t, "零一", ErrUnexpectedRune)
-	testParseBigIntError(t, "二十一十", ErrInvalidSequence)
-	testParseBigIntError(t, "一十二十", ErrInvalidSequence)
-	testParseBigIntError(t, "一万二万", ErrInvalidSequence)
-	testParseBigIntError(t, "二万一万", ErrInvalidSequence)
+	for _, tc := range parseErrorCases {
+		testParseBigIntError(t, tc.Text, tc.Expected)
+	}
 	// 恒河沙
 	testParseBigIntError(t, "一恒", ErrEOF)
 	testParseBigIntError(t, "一恒a", ErrUnexpectedRune)
