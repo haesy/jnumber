@@ -2,6 +2,7 @@ package jnumber
 
 import (
 	"math"
+	"math/bits"
 	"strings"
 	"unicode/utf8"
 )
@@ -110,27 +111,16 @@ func (p *parser) endSegmentWith(digit uint64) error {
 	}
 	p.minSegmentEndDigit = digit
 	var multiplierSum uint64
-	var lastDigit uint64
 	for i := 0; i < p.segmentIndex; i++ {
-		segmentDigit := p.segment[i]
-		if lastDigit > 0 && segmentDigit >= lastDigit {
-			return ErrInvalidSequence
-		}
-		multiplierSum += segmentDigit
-		lastDigit = segmentDigit
+		multiplierSum += p.segment[i]
 	}
-	if multiplierSum >= i万 || multiplierSum >= digit {
-		return ErrInvalidSequence
-	}
-	if digit == i京 && multiplierSum > maxParseUintMultiplier {
+	var carry uint64
+	overflow, segmentSum := bits.Mul64(multiplierSum, digit)
+	p.sum, carry = bits.Add64(p.sum, segmentSum, 0)
+	if carry > 0 || overflow > 0 {
 		return ErrOverflow
 	}
-	oldSum := p.sum
-	p.sum += multiplierSum * digit
 	p.clearSegment()
-	if p.sum < oldSum {
-		return ErrOverflow
-	}
 	return nil
 }
 
@@ -139,21 +129,12 @@ func (p *parser) endSegment() error {
 		return nil
 	}
 	var segmentSum uint64
-	var lastDigit uint64
 	for i := 0; i < p.segmentIndex; i++ {
-		segmentDigit := p.segment[i]
-		if lastDigit > 0 && segmentDigit >= lastDigit {
-			return ErrInvalidSequence
-		}
-		segmentSum += segmentDigit
-		lastDigit = segmentDigit
+		segmentSum += p.segment[i]
 	}
-	if segmentSum >= i万 {
-		return ErrInvalidSequence
-	}
-	oldSum := p.sum
-	p.sum += segmentSum
-	if p.sum < oldSum {
+	var carry uint64
+	p.sum, carry = bits.Add64(p.sum, segmentSum, 0)
+	if carry > 0 {
 		return ErrOverflow
 	}
 	return nil

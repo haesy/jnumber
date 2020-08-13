@@ -3,7 +3,6 @@ package jnumber
 import (
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -42,29 +41,28 @@ func (e *UnexpectedRuneError) Unwrap() error {
 }
 
 const (
-	i零                     = 0
-	i一                     = 1
-	i二                     = 2
-	i三                     = 3
-	i四                     = 4
-	i五                     = 5
-	i六                     = 6
-	i七                     = 7
-	i八                     = 8
-	i九                     = 9
-	i十                     = 10
-	i百                     = 100
-	i千                     = 1_000
-	i万                     = 10_000
-	i億                     = 100_000_000
-	i兆                     = 1_000_000_000_000
-	i京                     = 10_000_000_000_000_000
-	i壱                     = 1
-	i弐                     = 2
-	i参                     = 3
-	i拾                     = 10
-	i萬                     = 10_000
-	maxParseUintMultiplier = math.MaxUint64 / i京
+	i零 = 0
+	i一 = 1
+	i二 = 2
+	i三 = 3
+	i四 = 4
+	i五 = 5
+	i六 = 6
+	i七 = 7
+	i八 = 8
+	i九 = 9
+	i十 = 10
+	i百 = 100
+	i千 = 1_000
+	i万 = 10_000
+	i億 = 100_000_000
+	i兆 = 1_000_000_000_000
+	i京 = 10_000_000_000_000_000
+	i壱 = 1
+	i弐 = 2
+	i参 = 3
+	i拾 = 10
+	i萬 = 10_000
 )
 
 var (
