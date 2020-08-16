@@ -5,12 +5,15 @@ import (
 	"testing"
 )
 
-var uint64Kanjis = []rune{
+var uint64Kanjis = [...]rune{
 	'零', '〇', '一', '二', '三',
 	'四', '五', '六', '七', '八',
 	'九', '十', '百', '千', '万',
 	'億', '兆', '京',
 	'壱', '弐', '参', '拾', '萬',
+	'壹', '貳', '參', '肆', '伍',
+	'陸', '柒', '漆', '捌', '玖',
+	'佰', '阡', '仟',
 }
 
 func TestFormatParseIntRandom(t *testing.T) {
@@ -126,17 +129,41 @@ func valueOfSwitch(r rune) (value uint64, ok bool) {
 		return i京, true
 	// formal numbers / daiji / 大字
 	case '壱':
-		return i一, true
+		return i壱, true
 	case '弐':
-		return i二, true
+		return i弐, true
 	case '参':
-		return i三, true
-	case '伍':
-		return i五, true
+		return i参, true
 	case '拾':
-		return i十, true
+		return i拾, true
 	case '萬':
-		return i万, true
+		return i萬, true
+	case '壹':
+		return i壹, true
+	case '貳':
+		return i貳, true
+	case '參':
+		return i參, true
+	case '肆':
+		return i肆, true
+	case '伍':
+		return i伍, true
+	case '陸':
+		return i陸, true
+	case '柒':
+		return i柒, true
+	case '漆':
+		return i漆, true
+	case '捌':
+		return i捌, true
+	case '玖':
+		return i玖, true
+	case '佰':
+		return i佰, true
+	case '阡':
+		return i阡, true
+	case '仟':
+		return i仟, true
 	default:
 		return 0, false
 	}
