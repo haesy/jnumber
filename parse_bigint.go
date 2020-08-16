@@ -222,35 +222,33 @@ func (s *stack) empty() bool {
 // rune of multi kanji numerals. The result must treated as read-only.
 func bigIntValueOf(r rune) *big.Int {
 	switch r {
-	case '零':
+	case '零', '〇':
 		return &b零
-	case '〇':
-		return &b零
-	case '一':
+	case '一', '壱', '壹':
 		return &b一
-	case '二':
+	case '二', '弐', '貳':
 		return &b二
-	case '三':
+	case '三', '参', '參':
 		return &b三
-	case '四':
+	case '四', '肆':
 		return &b四
-	case '五':
+	case '五', '伍':
 		return &b五
-	case '六':
+	case '六', '陸':
 		return &b六
-	case '七':
+	case '七', '柒', '漆':
 		return &b七
-	case '八':
+	case '八', '捌':
 		return &b八
-	case '九':
+	case '九', '玖':
 		return &b九
-	case '十':
+	case '十', '拾':
 		return &b十
-	case '百':
+	case '百', '佰':
 		return &b百
-	case '千':
+	case '千', '阡', '仟':
 		return &b千
-	case '万':
+	case '万', '萬':
 		return &b万
 	case '億':
 		return &b億
@@ -285,19 +283,6 @@ func bigIntValueOf(r rune) *big.Int {
 		return &b不可思議
 	case '無':
 		return &b無量大数
-	// formal numbers / daiji / 大字
-	case '壱':
-		return &b一
-	case '弐':
-		return &b二
-	case '参':
-		return &b三
-	case '伍':
-		return &b五
-	case '拾':
-		return &b十
-	case '萬':
-		return &b万
 	default:
 		return nil
 	}
