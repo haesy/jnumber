@@ -162,10 +162,22 @@ var (
 	)
 	fromDaijiReplacer = strings.NewReplacer(
 		"壱", "一",
+		"壹", "一",
 		"弐", "二",
+		"貳", "二",
 		"参", "三",
+		"參", "三",
+		"肆", "四",
 		"伍", "五",
+		"陸", "六",
+		"柒", "七",
+		"漆", "七",
+		"捌", "八",
+		"玖", "九",
 		"拾", "十",
+		"佰", "百",
+		"阡", "千",
+		"仟", "千",
 		"萬", "万",
 	)
 )
@@ -206,7 +218,7 @@ func ToDaiji() *strings.Replacer {
 	return toDaijiReplacer
 }
 
-// FromDaiji replaces current daiji with regular kanji.
+// FromDaiji replaces daiji with regular kanji.
 func FromDaiji() *strings.Replacer {
 	return fromDaijiReplacer
 }
