@@ -156,7 +156,6 @@ var (
 		"一", "壱",
 		"二", "弐",
 		"三", "参",
-		"五", "伍",
 		"十", "拾",
 		"万", "萬",
 	)
@@ -222,3 +221,13 @@ func ToDaiji() *strings.Replacer {
 func FromDaiji() *strings.Replacer {
 	return fromDaijiReplacer
 }
+
+const (
+	regexCommonInt    = "零〇一二三四五六七八九十百千万億兆京"
+	regexCommonBigInt = "垓秭穣溝澗正載極"
+	regexDaiji        = "壱弐参拾萬"
+	regexObsoletDaji  = "壹貳參肆伍陸柒漆捌玖佰阡仟"
+	// Regexp matches any series of japanese numerals that may be a valid number.
+	Regexp = "(?:[" + regexCommonInt + regexDaiji + regexObsoletDaji + regexCommonBigInt +
+		"]|恒河沙|阿僧祇|那由他|不可思議|無量大数)+"
+)

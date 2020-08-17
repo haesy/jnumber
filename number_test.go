@@ -2,6 +2,7 @@ package jnumber
 
 import (
 	"math/rand"
+	"regexp"
 	"testing"
 )
 
@@ -63,6 +64,22 @@ func TestValueOf(t *testing.T) {
 				t.Errorf("value expected: %d, actual: %d", expectedValue, actualValue)
 			}
 		})
+	}
+}
+
+func TestRegexp(t *testing.T) {
+	r := regexp.MustCompile(Regexp)
+	for _, tc := range parseCases {
+		ok := r.MatchString(tc.Text)
+		if !ok {
+			t.Errorf("expected %s to match Regexp", tc.Text)
+		}
+	}
+	for _, tc := range parseBigIntCases {
+		ok := r.MatchString(tc.Text)
+		if !ok {
+			t.Errorf("expected %s to match Regexp", tc.Text)
+		}
 	}
 }
 
