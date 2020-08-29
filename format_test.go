@@ -12,7 +12,7 @@ type formatIntTestCase struct {
 }
 
 var formatIntCases = []formatIntTestCase{
-	{"〇", 0},
+	{"零", 0},
 	{"一", 1},
 	{"二", 2},
 	{"三", 3},
