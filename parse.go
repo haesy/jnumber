@@ -31,131 +31,64 @@ func ParseInt(s string) (int64, error) {
 
 // ParseUint returns the unsigned integer represented by the given japanese numerals.
 func ParseUint(s string) (uint64, error) {
-	if s == "" {
+	n := len(s)
+	if n == 0 {
 		return 0, ErrEmpty
 	}
-	parser := parser{
-		minSegmentEndDigit: math.MaxUint64,
-		minSegmentDigit:    math.MaxUint64,
-	}
-	err := parser.parse(s)
-	if err != nil {
-		return 0, err
-	}
-	return parser.sum, nil
-}
-
-// parser contains the state for the parsing process. The segment could be a slice
-// for easier code but this way we can avoid an allocation.
-type parser struct {
-	// current sum
-	sum uint64
-	// min digit >= 一万 that ends a segment
-	minSegmentEndDigit uint64
-	// min digit >= 十 of the current segment
-	minSegmentDigit uint64
-	// holds digit until we know what to do with them
-	segment [16]uint64
-	// position in the segment array for the next digit
-	segmentIndex int
-}
-
-// append adds a digit to the current segment.
-func (p *parser) append(digit uint64) {
-	p.segment[p.segmentIndex] = digit
-	p.segmentIndex++
-}
-
-// clearSegment clears the current segment to start parsing a new segment.
-func (p *parser) clearSegment() {
-	p.segmentIndex = 0
-	p.minSegmentDigit = math.MaxUint64
-}
-
-// push integrates a new digit to the current segment.
-func (p *parser) push(digit uint64) error {
-	if p.segmentIndex == 0 {
-		p.append(digit)
-		return nil
-	} else if digit >= i十 {
-		if digit >= p.minSegmentDigit {
-			return ErrInvalidSequence
-		}
-		p.minSegmentDigit = digit
-	}
-	lastIndex := p.segmentIndex - 1
-	lastDigit := p.segment[lastIndex]
-	if lastDigit < digit {
-		if digit < i十 {
-			return ErrInvalidSequence
-		} else if (digit == i百 || digit == i千) && lastDigit >= i十 {
-			return ErrInvalidSequence
-		}
-		// Example: 二十 -> 2 * 10 -> 20
-		p.segment[lastIndex] = lastDigit * digit
-		return nil
-	} else if lastDigit > digit && p.segmentIndex < len(p.segment) && (digit >= i十 || lastDigit >= i十) {
-		// Example: 十一 -> 20 + 1 -> 21
-		// We don't know if the next digit needs be multiplied with this digit or
-		// added to the last. Store for handling at the end of the segment.
-		p.append(digit)
-		return nil
-	}
-	return ErrInvalidSequence
-}
-
-// endSegmentWith is a combination of push() and endSegment() for digits >= 万 (10000).
-func (p *parser) endSegmentWith(digit uint64) error {
-	if p.segmentIndex == 0 || p.minSegmentEndDigit <= digit {
-		return ErrInvalidSequence
-	}
-	p.minSegmentEndDigit = digit
-	var multiplierSum uint64
-	for i := 0; i < p.segmentIndex; i++ {
-		multiplierSum += p.segment[i]
-	}
-	var carry uint64
-	overflow, segmentSum := bits.Mul64(multiplierSum, digit)
-	p.sum, carry = bits.Add64(p.sum, segmentSum, 0)
-	if carry > 0 || overflow > 0 {
-		return ErrOverflow
-	}
-	p.clearSegment()
-	return nil
-}
-
-func (p *parser) endSegment() error {
-	if p.segmentIndex == 0 {
-		return nil
-	}
-	var segmentSum uint64
-	for i := 0; i < p.segmentIndex; i++ {
-		segmentSum += p.segment[i]
-	}
-	var carry uint64
-	p.sum, carry = bits.Add64(p.sum, segmentSum, 0)
-	if carry > 0 {
-		return ErrOverflow
-	}
-	return nil
-}
-
-func (p *parser) parse(s string) error {
-	n := len(s)
+	sum := uint64(0)
+	segment := uint64(0)
+	lastValue := uint64(0)
+	minSegmentValue := uint64(math.MaxUint64)
+	minSegmentEnd := uint64(math.MaxUint64)
 	i := 0
 loop:
 	for ; i < n-2; i += 3 {
 		r := decodeUtf8Kanji(i, s)
 		value, ok := ValueOf(r)
 		if value > 0 && ok {
-			var err error
-			if value < i万 {
-				err = p.push(value)
-			} else {
-				err = p.endSegmentWith(value)
-			}
-			if err != nil {
-				return err
+			if value < 10 { // 1 to 9
+				// last number must not be < 10 as well
+				if 0 < lastValue && lastValue < 10 {
+					return 0, ErrInvalidSequence
+				}
+				lastValue = value
+			} else if value < 10_000 { // 10, 100, 1000
+				// check if we already encountered this number in the current segment
+				if value >= minSegmentValue {
+					return 0, ErrInvalidSequence
+				}
+				minSegmentValue = value
+				// multiply with last number if allowed and possible
+				if 0 < lastValue && lastValue < 10 {
+					segment += lastValue * value
+				} else {
+					segment += value
+				}
+				lastValue = value
+			} else { // >= 1_0000
+				// check if we already encountered this number
+				if value >= minSegmentEnd {
+					return 0, ErrInvalidSequence
+				}
+				minSegmentEnd = value
+				// create sum of current segment and add to sum
+				if 0 < lastValue && lastValue < 10 {
+					segment += lastValue
+				}
+				if segment == 0 {
+					return 0, ErrInvalidSequence
+				}
+
+				var carry uint64
+				overflow, segmentSum := bits.Mul64(segment, value)
+				sum, carry = bits.Add64(sum, segmentSum, 0)
+				if carry > 0 || overflow > 0 {
+					return 0, ErrOverflow
+				}
+				// prepare for new segment
+				minSegmentValue = uint64(math.MaxUint64)
+				segment = 0
+				lastValue = 0
 			}
 		} else {
 			switch r {
@@ -164,23 +97,34 @@ loop:
 					i += 3
 					break loop
 				}
-				return ErrInvalidSequence
+				return 0, ErrInvalidSequence
 			// 10^20 - 10^68 overflows uint64
 			// only the first kanji for multi kanji numbers
 			case '垓', '秭', '穣', '溝',
 				'澗', '正', '載', '極',
 				'恒', '阿', '那', '不',
 				'無':
-				return ErrOverflow
+				return 0, ErrOverflow
 			default:
-				return checkUnexpectedRune(s[i:])
+				return 0, checkUnexpectedRune(s[i:])
 			}
 		}
 	}
 	if i < n {
-		return checkUnexpectedRune(s[i:])
+		return 0, checkUnexpectedRune(s[i:])
 	}
-	return p.endSegment()
+	// add last segment to sum if there is one
+	if 0 < lastValue && lastValue < 10 {
+		segment += lastValue
+	}
+	if segment > 0 {
+		var carry uint64
+		sum, carry = bits.Add64(sum, segment, 0)
+		if carry > 0 {
+			return 0, ErrOverflow
+		}
+	}
+	return sum, nil
 }
 
 func checkUnexpectedRune(s string) error {
