@@ -1,6 +1,6 @@
 # JNumber
 
-Go module that implements the conversion between UTF-8 encoded Japenese numerals and uint64/int64/big.Int.
+Go module that implements the conversion between UTF-8 encoded Japanese numerals and uint64/int64/big.Int.
 
 Support for big.Int is limited to numbers |x| < 10^72.
 
