@@ -93,6 +93,7 @@ loop:
 		} else {
 			switch r {
 			case '零', '〇':
+				// zero is only valid if it is the only rune
 				if i == 0 {
 					i += 3
 					break loop
@@ -110,6 +111,7 @@ loop:
 			}
 		}
 	}
+	// are there still runes in the string after we are done?
 	if i < n {
 		return 0, checkUnexpectedRune(s[i:])
 	}
@@ -127,6 +129,7 @@ loop:
 	return sum, nil
 }
 
+// if our custom decoding fails, use the correct implementation from the standard library.
 func checkUnexpectedRune(s string) error {
 	r, _ := utf8.DecodeRuneInString(s)
 	switch r {
