@@ -20,7 +20,7 @@ func FormatInt(i int64) string {
 	var u uint64
 	if i < 0 {
 		u = uint64(-i)
-		result.WriteRune('-')
+		result.WriteString(negativePrefix)
 	} else {
 		u = uint64(i)
 	}
@@ -99,7 +99,7 @@ func FormatBigInt(i *big.Int) string {
 	var result strings.Builder
 	result.Grow(initialFormatBufferSize)
 	if i.Sign() < 0 {
-		result.WriteRune('-')
+		result.WriteString(negativePrefix)
 	}
 	initBigIntsOnce.Do(initBigInts)
 	formatBigInt(&result, &u)

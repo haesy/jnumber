@@ -9,11 +9,9 @@ import (
 
 // ParseInt returns the integer represented by the given japanese numerals.
 func ParseInt(s string) (int64, error) {
-	isNegative := strings.HasPrefix(s, "-")
-	if isNegative {
-		s = s[1:]
-	}
-	sum, err := ParseUint(s)
+	abs := strings.TrimPrefix(s, negativePrefix)
+	isNegative := s != abs
+	sum, err := ParseUint(abs)
 	if err != nil {
 		return 0, err
 	}
@@ -42,7 +40,7 @@ func ParseUint(s string) (uint64, error) {
 	minSegmentEnd := uint64(math.MaxUint64)
 	i := 0
 loop:
-	for ; i < n-2; i += 3 {
+	for ; i < n-2; i += utf8KanjiBytes {
 		r := decodeUtf8Kanji(i, s)
 		value, ok := ValueOf(r)
 		if value > 0 && ok {
@@ -95,7 +93,7 @@ loop:
 			case '零', '〇':
 				// zero is only valid if it is the only rune
 				if i == 0 {
-					i += 3
+					i += utf8KanjiBytes
 					break loop
 				}
 				return 0, ErrInvalidSequence

@@ -11,14 +11,12 @@ func ParseBigInt(s string) (*big.Int, error) {
 		return nil, ErrEmpty
 	}
 	initBigIntsOnce.Do(initBigInts)
-	isNegative := strings.HasPrefix(s, "-")
-	if isNegative {
-		s = s[1:]
-	}
+	abs := strings.TrimPrefix(s, negativePrefix)
+	isNegative := s != abs
 	parser := bigIntParser{
 		sum: big.NewInt(0),
 	}
-	err := parser.parse(s)
+	err := parser.parse(abs)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +136,7 @@ func (p *bigIntParser) parse(s string) error {
 	i := 0
 	var expectedRunes stack
 loop:
-	for ; i < n-2; i += 3 {
+	for ; i < n-2; i += utf8KanjiBytes {
 		r := decodeUtf8Kanji(i, s)
 		if skip, err := expectedRunes.pop(r); err != nil {
 			return err
@@ -160,7 +158,7 @@ loop:
 			switch r {
 			case '零', '〇':
 				if i == 0 {
-					i += 3
+					i += utf8KanjiBytes
 					break loop
 				}
 				return ErrInvalidSequence

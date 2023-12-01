@@ -1,8 +1,8 @@
 package jnumber
 
 import (
+	"errors"
 	"math/rand"
-	"regexp"
 	"testing"
 )
 
@@ -67,19 +67,59 @@ func TestValueOf(t *testing.T) {
 	}
 }
 
-func TestRegexp(t *testing.T) {
-	r := regexp.MustCompile(Regexp)
-	for _, tc := range parseCases {
-		ok := r.MatchString(tc.Text)
-		if !ok {
-			t.Errorf("expected %s to match Regexp", tc.Text)
-		}
-	}
-	for _, tc := range parseBigIntCases {
-		ok := r.MatchString(tc.Text)
-		if !ok {
-			t.Errorf("expected %s to match Regexp", tc.Text)
-		}
+type findTestCase struct {
+	Text     string
+	Expected []*SearchResult
+}
+
+var findCases = []findTestCase{
+	{"", []*SearchResult{}},
+	{"零", []*SearchResult{
+		{Start: 0, End: 3, Str: "零", Value: 0},
+	}},
+	{"〇", []*SearchResult{
+		{Start: 0, End: 3, Str: "〇", Value: 0},
+	}},
+	{"一", []*SearchResult{
+		{Start: 0, End: 3, Str: "一", Value: 1},
+	}},
+	{"一 二 三", []*SearchResult{
+		{Start: 0, End: 3, Str: "一", Value: 1},
+		{Start: 4, End: 7, Str: "二", Value: 2},
+		{Start: 8, End: 11, Str: "三", Value: 3},
+	}},
+	{"一一 二二二", []*SearchResult{
+		{Start: 0, End: 6, Str: "一一", Value: 0, Err: ErrInvalidSequence},
+		{Start: 7, End: 16, Str: "二二二", Value: 0, Err: ErrInvalidSequence},
+	}},
+}
+
+func TestFind(t *testing.T) {
+	for _, k := range findCases {
+		t.Run(string(k.Text), func(t *testing.T) {
+			actual := Find(k.Text)
+			if len(actual) != len(k.Expected) {
+				t.Errorf("len expected: %v, actual: %v", len(k.Expected), len(actual))
+			}
+			for i, actualMatch := range actual {
+				expectedMatch := k.Expected[i]
+				if actualMatch.Start != expectedMatch.Start {
+					t.Errorf("start expected: %v, actual: %v", expectedMatch.Start, actualMatch.Start)
+				}
+				if actualMatch.End != expectedMatch.End {
+					t.Errorf("end expected: %v, actual: %v", expectedMatch.End, actualMatch.End)
+				}
+				if actualMatch.Str != expectedMatch.Str {
+					t.Errorf("str expected: %v, actual: %v", expectedMatch.Str, actualMatch.Str)
+				}
+				if actualMatch.Value != expectedMatch.Value {
+					t.Errorf("value expected: %v, actual: %v", expectedMatch.Value, actualMatch.Value)
+				}
+				if expectedMatch.Err != nil && !errors.Is(actualMatch.Err, expectedMatch.Err) {
+					t.Errorf("err expected: %v, actual: %v", expectedMatch.Err, actualMatch.Err)
+				}
+			}
+		})
 	}
 }
 

@@ -4,9 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"regexp"
 	"strings"
 	"sync"
 )
+
+// utf8KanjiBytes is the number of bytes per kanji (at least the ones that are relevant for this package).
+const utf8KanjiBytes = 3
+
+const negativePrefix = "マイナス"
 
 var (
 	// ErrEmpty is returned if a function does not allow empty strings as a parameter.
@@ -223,11 +229,68 @@ func FromDaiji() *strings.Replacer {
 }
 
 const (
-	regexCommonInt    = "零〇一二三四五六七八九十百千万億兆京"
-	regexCommonBigInt = "垓秭穣溝澗正載極"
-	regexDaiji        = "壱弐参拾萬"
-	regexObsoletDaji  = "壹貳參肆伍陸柒漆捌玖佰阡仟"
-	// Regexp matches any series of japanese numerals that may be a valid number.
-	Regexp = "(?:[" + regexCommonInt + regexDaiji + regexObsoletDaji + regexCommonBigInt +
+	commonIntRunes    = "零〇一二三四五六七八九十百千万億兆京"
+	commonBigIntRunes = "垓秭穣溝澗正載極"
+	daijiRunes        = "壱弐参拾萬"
+	obsoletDajiRunes  = "壹貳參肆伍陸柒漆捌玖佰阡仟"
+	patternInt        = "(?:[" + commonIntRunes + daijiRunes + obsoletDajiRunes + "])+"
+	patternBigInt     = "(?:[" + commonIntRunes + daijiRunes + obsoletDajiRunes + commonBigIntRunes +
 		"]|恒河沙|阿僧祇|那由他|不可思議|無量大数)+"
 )
+
+var (
+	regexpInt    = regexp.MustCompile(patternInt)
+	regexpBigInt = regexp.MustCompile(patternBigInt)
+)
+
+// SearchResult is single match in a text that may be a japanese numeral.
+type SearchResult struct {
+	Start, End int
+	Str        string
+	Value      uint64
+	Err        error
+}
+
+// Find returns an array of all potential japanese numerals in the given string.
+func Find(s string) []*SearchResult {
+	if len(s) < utf8KanjiBytes {
+		return []*SearchResult{}
+	}
+	results := make([]*SearchResult, 0)
+	for _, match := range regexpInt.FindAllStringIndex(s, -1) {
+		result := &SearchResult{
+			Start: match[0],
+			End:   match[1],
+			Str:   s[match[0]:match[1]],
+		}
+		result.Value, result.Err = ParseUint(result.Str)
+		results = append(results, result)
+	}
+	return results
+}
+
+// SearchBigIntResult is single match in a text that may be a japanese numeral.
+type SearchBigIntResult struct {
+	Start, End int
+	Str        string
+	Value      *big.Int
+	Err        error
+}
+
+// FindBigInt returns an array of all potential japanese numerals in the given string.
+func FindBigInt(s string) []*SearchBigIntResult {
+	if len(s) < utf8KanjiBytes {
+		return []*SearchBigIntResult{}
+	}
+	results := make([]*SearchBigIntResult, 0)
+	for _, match := range regexpBigInt.FindAllStringIndex(s, -1) {
+		result := &SearchBigIntResult{
+			Start: match[0],
+			End:   match[1],
+			Str:   s[match[0]:match[1]],
+		}
+		result.Value, result.Err = ParseBigInt(result.Str)
+		results = append(results, result)
+	}
+	return results
+}

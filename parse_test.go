@@ -91,7 +91,7 @@ var parseCases = []parseTestCase{
 	{"二兆", 2 * i兆},
 	{"二京", 2 * i京},
 	{"九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七", math.MaxInt64},
-	{"-九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百八", math.MinInt64},
+	{negativePrefix + "九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百八", math.MinInt64},
 	// bank notes
 	{"千", 1_000},
 	{"弐千", 2_000},
@@ -219,7 +219,7 @@ func BenchmarkParseInt(b *testing.B) {
 
 func BenchmarkParseUint(b *testing.B) {
 	for _, tc := range parseCases {
-		if strings.HasPrefix(tc.Text, "-") {
+		if strings.HasPrefix(tc.Text, negativePrefix) {
 			continue
 		}
 		b.Run(tc.Text, func(b *testing.B) {
