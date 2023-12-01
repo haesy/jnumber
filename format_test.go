@@ -11,6 +11,11 @@ type formatIntTestCase struct {
 	Number   int64
 }
 
+type formatUntTestCase struct {
+	Expected string
+	Number   uint64
+}
+
 var formatIntCases = []formatIntTestCase{
 	{"零", 0},
 	{"一", 1},
@@ -85,12 +90,68 @@ var formatIntCases = []formatIntTestCase{
 	{"二兆", 2 * i兆},
 	{"二京", 2 * i京},
 	{"九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七", math.MaxInt64},
+	{negativePrefix + "九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百八", math.MinInt64},
+}
+
+var formatUintCases = []formatUntTestCase{
+	{"零", 0},
+	{"十", 10},
+	{"百", 100},
+	{"千", 1_000},
+	{"一万", 10_000},
+	{"一億", i億},
+	{"一兆", i兆},
+	{"一京", i京},
+	{"千八百四十四京六千七百四十四兆七百三十七億九百五十五万千六百十五", math.MaxUint64},
+}
+
+func TestAppendInt(t *testing.T) {
+	const prefix = "prefix "
+	for _, tc := range formatIntCases {
+		t.Run(tc.Expected, func(t *testing.T) {
+			dst := make([]byte, 0)
+			dst = append(dst, prefix...)
+			dst = AppendInt(dst, tc.Number)
+			actual := string(dst)
+			expected := prefix + tc.Expected
+			if actual != expected {
+				t.Errorf("expected: %s, actual: %s", expected, actual)
+			}
+		})
+	}
 }
 
 func TestFormatInt(t *testing.T) {
 	for _, tc := range formatIntCases {
 		t.Run(tc.Expected, func(t *testing.T) {
 			actual := FormatInt(tc.Number)
+			if actual != tc.Expected {
+				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
+			}
+		})
+	}
+}
+
+func TestAppendUint(t *testing.T) {
+	const prefix = "prefix "
+	for _, tc := range formatUintCases {
+		t.Run(tc.Expected, func(t *testing.T) {
+			dst := make([]byte, 0)
+			dst = append(dst, prefix...)
+			dst = AppendUint(dst, tc.Number)
+			actual := string(dst)
+			expected := prefix + tc.Expected
+			if actual != expected {
+				t.Errorf("expected: %s, actual: %s", expected, actual)
+			}
+		})
+	}
+}
+
+func TestFormatUint(t *testing.T) {
+	for _, tc := range formatUintCases {
+		t.Run(tc.Expected, func(t *testing.T) {
+			actual := FormatUint(tc.Number)
 			if actual != tc.Expected {
 				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
 			}

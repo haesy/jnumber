@@ -2,30 +2,50 @@ package jnumber
 
 import (
 	"math/big"
-	"strings"
+	"unsafe"
 )
 
 const (
 	numberOfFastSmalls      = 101
-	initialFormatBufferSize = 24
+	initialFormatBufferSize = 8 * utf8KanjiBytes
 )
+
+func AppendInt(dst []byte, i int64) []byte {
+	if 0 <= i && i < numberOfFastSmalls {
+		return append(dst, formatSmall(int(i))...)
+	}
+	var u uint64
+	if i < 0 {
+		u = uint64(-i)
+		dst = append(dst, negativePrefix...)
+	} else {
+		u = uint64(i)
+	}
+	return formatUnsigned(dst, u)
+}
+
+func AppendUint(dst []byte, u uint64) []byte {
+	if u < numberOfFastSmalls {
+		return append(dst, formatSmall(int(u))...)
+	}
+	return formatUnsigned(dst, u)
+}
 
 // FormatInt returns the given integer as a string of japanese numerals.
 func FormatInt(i int64) string {
 	if 0 <= i && i < numberOfFastSmalls {
 		return formatSmall(int(i))
 	}
-	var result strings.Builder
-	result.Grow(initialFormatBufferSize)
+	dst := make([]byte, 0, initialFormatBufferSize)
 	var u uint64
 	if i < 0 {
 		u = uint64(-i)
-		result.WriteString(negativePrefix)
+		dst = append(dst, negativePrefix...)
 	} else {
 		u = uint64(i)
 	}
-	formatUnsigned(&result, u)
-	return result.String()
+	dst = formatUnsigned(dst, u)
+	return unsafe.String(unsafe.SliceData(dst), len(dst))
 }
 
 // FormatUint returns the given unsigned integer as a string of japanese numerals.
@@ -33,57 +53,57 @@ func FormatUint(u uint64) string {
 	if u < numberOfFastSmalls {
 		return formatSmall(int(u))
 	}
-	var result strings.Builder
-	result.Grow(initialFormatBufferSize)
-	formatUnsigned(&result, u)
-	return result.String()
+	dst := make([]byte, 0, initialFormatBufferSize)
+	dst = formatUnsigned(dst, u)
+	return unsafe.String(unsafe.SliceData(dst), len(dst))
 }
 
-func formatUnsigned(result *strings.Builder, u uint64) {
+func formatUnsigned(dst []byte, u uint64) []byte {
 	if u >= i京 {
-		u = formatAppend(result, u, '京', i京, u/i京)
+		dst, u = formatAppend(dst, u, "京", i京, u/i京)
 	}
 	if u >= i兆 {
-		u = formatAppend(result, u, '兆', i兆, u/i兆)
+		dst, u = formatAppend(dst, u, "兆", i兆, u/i兆)
 	}
 	if u >= i億 {
-		u = formatAppend(result, u, '億', i億, u/i億)
+		dst, u = formatAppend(dst, u, "億", i億, u/i億)
 	}
 	if u >= i万 {
-		u = formatAppend(result, u, '万', i万, u/i万)
+		dst, u = formatAppend(dst, u, "万", i万, u/i万)
 	}
 	if u >= i千 {
-		u = formatAppend(result, u, '千', i千, u/i千)
+		dst, u = formatAppend(dst, u, "千", i千, u/i千)
 	}
 	if u > i百 {
-		u = formatAppend(result, u, '百', i百, u/i百)
+		dst, u = formatAppend(dst, u, "百", i百, u/i百)
 	}
 	if 0 < u {
-		result.WriteString(formatSmall(int(u)))
+		dst = append(dst, formatSmall(int(u))...)
 	}
+	return dst
 }
 
-func formatAppend(result *strings.Builder, u uint64, kanji rune, kanjiValue uint64, multiplier uint64) uint64 {
+func formatAppend(dst []byte, u uint64, kanji string, kanjiValue uint64, multiplier uint64) ([]byte, uint64) {
 	totalValue := multiplier * kanjiValue
 	if multiplier == 1 {
 		if kanjiValue >= i万 {
-			result.WriteRune('一')
+			dst = append(dst, "一"...)
 		}
 	} else if multiplier < numberOfFastSmalls {
-		result.WriteString(formatSmall(int(multiplier)))
+		dst = append(dst, formatSmall(int(multiplier))...)
 	} else {
 		if multiplier >= i千 {
-			multiplier = formatAppend(result, multiplier, '千', i千, multiplier/i千)
+			dst, multiplier = formatAppend(dst, multiplier, "千", i千, multiplier/i千)
 		}
 		if multiplier > i百 {
-			multiplier = formatAppend(result, multiplier, '百', i百, multiplier/i百)
+			dst, multiplier = formatAppend(dst, multiplier, "百", i百, multiplier/i百)
 		}
 		if 0 < multiplier {
-			result.WriteString(formatSmall(int(multiplier)))
+			dst = append(dst, formatSmall(int(multiplier))...)
 		}
 	}
-	result.WriteRune(kanji)
-	return u - totalValue
+	dst = append(dst, kanji...)
+	return dst, u - totalValue
 }
 
 // FormatBigInt returns the given big integer as a string of japanese numerals.
@@ -96,37 +116,36 @@ func FormatBigInt(i *big.Int) string {
 	}
 	var u big.Int
 	u.Abs(i)
-	var result strings.Builder
-	result.Grow(initialFormatBufferSize)
+	dst := make([]byte, 0, initialFormatBufferSize)
 	if i.Sign() < 0 {
-		result.WriteString(negativePrefix)
+		dst = append(dst, negativePrefix...)
 	}
 	initBigIntsOnce.Do(initBigInts)
-	formatBigInt(&result, &u)
-	return result.String()
+	dst = formatBigInt(dst, &u)
+	return unsafe.String(unsafe.SliceData(dst), len(dst))
 }
 
-func formatBigInt(result *strings.Builder, u *big.Int) {
-	formatAppendBigInt(result, u, "無量大数", &b無量大数)
-	formatAppendBigInt(result, u, "不可思議", &b不可思議)
-	formatAppendBigInt(result, u, "那由他", &b那由他)
-	formatAppendBigInt(result, u, "阿僧祇", &b阿僧祇)
-	formatAppendBigInt(result, u, "恒河沙", &b恒河沙)
-	formatAppendBigInt(result, u, "極", &b極)
-	formatAppendBigInt(result, u, "載", &b載)
-	formatAppendBigInt(result, u, "正", &b正)
-	formatAppendBigInt(result, u, "澗", &b澗)
-	formatAppendBigInt(result, u, "溝", &b溝)
-	formatAppendBigInt(result, u, "穣", &b穣)
-	formatAppendBigInt(result, u, "秭", &b秭)
-	formatAppendBigInt(result, u, "垓", &b垓)
-	formatAppendBigInt(result, u, "京", &b京)
-	formatUnsigned(result, u.Uint64())
+func formatBigInt(dst []byte, u *big.Int) []byte {
+	dst = formatAppendBigInt(dst, u, "無量大数", &b無量大数)
+	dst = formatAppendBigInt(dst, u, "不可思議", &b不可思議)
+	dst = formatAppendBigInt(dst, u, "那由他", &b那由他)
+	dst = formatAppendBigInt(dst, u, "阿僧祇", &b阿僧祇)
+	dst = formatAppendBigInt(dst, u, "恒河沙", &b恒河沙)
+	dst = formatAppendBigInt(dst, u, "極", &b極)
+	dst = formatAppendBigInt(dst, u, "載", &b載)
+	dst = formatAppendBigInt(dst, u, "正", &b正)
+	dst = formatAppendBigInt(dst, u, "澗", &b澗)
+	dst = formatAppendBigInt(dst, u, "溝", &b溝)
+	dst = formatAppendBigInt(dst, u, "穣", &b穣)
+	dst = formatAppendBigInt(dst, u, "秭", &b秭)
+	dst = formatAppendBigInt(dst, u, "垓", &b垓)
+	dst = formatAppendBigInt(dst, u, "京", &b京)
+	return formatUnsigned(dst, u.Uint64())
 }
 
-func formatAppendBigInt(result *strings.Builder, u *big.Int, kanji string, kanjiValue *big.Int) {
+func formatAppendBigInt(dst []byte, u *big.Int, kanji string, kanjiValue *big.Int) []byte {
 	if u.Cmp(kanjiValue) < 0 {
-		return
+		return dst
 	}
 	var multiplier big.Int
 	multiplier.Div(u, kanjiValue)
@@ -138,21 +157,21 @@ func formatAppendBigInt(result *strings.Builder, u *big.Int, kanji string, kanji
 	}
 
 	if intMultiplier := multiplier.Uint64(); intMultiplier < numberOfFastSmalls {
-		result.WriteString(formatSmall(int(intMultiplier)))
+		dst = append(dst, formatSmall(int(intMultiplier))...)
 	} else {
 		if intMultiplier >= i千 {
-			intMultiplier = formatAppend(result, intMultiplier, '千', i千, intMultiplier/i千)
+			dst, intMultiplier = formatAppend(dst, intMultiplier, "千", i千, intMultiplier/i千)
 		}
 		if intMultiplier > i百 {
-			intMultiplier = formatAppend(result, intMultiplier, '百', i百, intMultiplier/i百)
+			dst, intMultiplier = formatAppend(dst, intMultiplier, "百", i百, intMultiplier/i百)
 		}
 		if 0 < intMultiplier {
-			result.WriteString(formatSmall(int(intMultiplier)))
+			dst = append(dst, formatSmall(int(intMultiplier))...)
 		}
 	}
-
-	result.WriteString(kanji)
+	dst = append(dst, kanji...)
 	u.Sub(u, &totalValue)
+	return dst
 }
 
 var smallInts = [...]string{
