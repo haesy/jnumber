@@ -1,10 +1,17 @@
-# JNumber
+# JNumber - `strconv` for Japanese numerals
 
 Go module that implements the conversion between UTF-8 encoded Japanese numerals and uint64/int64/big.Int.
 
-Support for big.Int is limited to numbers |x| < 10^72.
+## Features
 
-Negative numbers use "マイナス" as a prefix.
+- fast
+- zero/low allocations
+- zero external dependencies
+- supports conversion from/to `int64`, `uint64` and `big.Int`
+- supports numbers |x| < 10^72 (as long as they fit into the used datatype)
+- supports daiji (大字), both current and obsolete ones
+- supports serial numbers like 二〇二三 for 2023
+- negative numbers use マイナス as a prefix
 
 ## Examples
 
@@ -23,12 +30,14 @@ func main() {
     fmt.Println(jnumber.FormatUint(299)) // "二百九十九"
     fmt.Println(jnumber.FormatInt(-299)) // "マイナス二百九十九"
     fmt.Println(jnumber.FormatBigInt(big.NewInt(299))) // "二百九十九"
+    fmt.Println(jnumber.FormatSerialInt(2023)) // "二〇二三"
 
     // string -> int64/uint64/big.Int
     fmt.Println(jnumber.ParseUint("一千二百三十四")) // 1234
     fmt.Println(jnumber.ParseInt("マイナス二十三万四千五百六十七")) // -234567
     fmt.Println(jnumber.ParseInt("九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七")) // 9223372036854775807
     fmt.Println(jnumber.ParseBigInt("一無量大数")) // 10^68
+    fmt.Println(jnumber.ParseSerialInt("二〇二三")) // 2023
     
     // support for daiji
     fmt.Println(jnumber.ParseInt("弐千")) // 2000
@@ -68,6 +77,12 @@ Character | Value | Character | Value
 \* = Daiji / 大字
 
 \*\* = Biggest numeral that fits into int64/uint64
+
+## Contributing
+
+If you find any bugs or want additional features please create an issue with details.
+
+Merge requests out of the blue without any context or explanation are ignored.
 
 ## License
 
