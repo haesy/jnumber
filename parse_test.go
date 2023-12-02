@@ -5,167 +5,51 @@ import (
 	"math"
 	"strings"
 	"testing"
-	"unicode/utf8"
 )
 
-type parseTestCase struct {
-	Text     string
-	Expected int64
-}
-
-var parseCases = []parseTestCase{
-	{"零", 0},
-	{"〇", 0},
-	{"一", 1},
-	{"二", 2},
-	{"三", 3},
-	{"四", 4},
-	{"五", 5},
-	{"六", 6},
-	{"七", 7},
-	{"八", 8},
-	{"九", 9},
-	{"十", 10},
-	{"百", 100},
-	{"千", 1_000},
-	{"一千", 1_000},
-	{"一万", 10_000},
-	{"一億", i億},
-	{"一兆", i兆},
-	{"一京", i京},
-	{"十一", 11},
-	{"十二", 12},
-	{"十三", 13},
-	{"十四", 14},
-	{"十五", 15},
-	{"十六", 16},
-	{"十七", 17},
-	{"十八", 18},
-	{"十九", 19},
-	{"二十", 20},
-	{"二十一", 21},
-	{"二十二", 22},
-	{"二十三", 23},
-	{"二十四", 24},
-	{"二十五", 25},
-	{"二十六", 26},
-	{"二十七", 27},
-	{"二十八", 28},
-	{"二十九", 29},
-	{"三十", 30},
-	{"三十一", 31},
-	{"三十二", 32},
-	{"三十三", 33},
-	{"三十四", 34},
-	{"三十五", 35},
-	{"三十六", 36},
-	{"三十七", 37},
-	{"三十八", 38},
-	{"三十九", 39},
-	{"九十九", 99},
-	{"百一", 101},
-	{"百十", 110},
-	{"百十一", 111},
-	{"百二十一", 121},
-	{"百二十二", 122},
-	{"百二十三", 123},
-	{"百三十三", 133},
-	{"百九十九", 199},
-	{"二百", 200},
-	{"二百一", 201},
-	{"二百十", 210},
-	{"二百十一", 211},
-	{"二百九十九", 299},
-	{"三百", 300},
-	{"一千四", 1_004},
-	{"一千三十四", 1_034},
-	{"一千二百三十四", 1_234},
-	{"二千", 2_000},
-	{"三千", 3_000},
-	{"二万", 20_000},
-	{"三万", 30_000},
-	{"一万二千三百四十五", 12_345},
-	{"二十三万四千五百六十七", 234_567},
-	{"三百四十五万六千七百八十九", 3_456_789},
-	{"二億", 2 * i億},
-	{"二兆", 2 * i兆},
-	{"二京", 2 * i京},
-	{"九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七", math.MaxInt64},
-	{negativePrefix + "九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百八", math.MinInt64},
-	// bank notes
-	{"千", 1_000},
-	{"弐千", 2_000},
-	{"五千", 5_000},
-	{"壱万", 10_000},
-}
-
-type parseErrorTestCase struct {
-	Text     string
-	Expected error
-}
-
-var parseErrorCases = []parseErrorTestCase{
-	{"", ErrEmpty},
-	{"京", ErrInvalidSequence},
-	{"一一", ErrInvalidSequence},
-	{"一二", ErrInvalidSequence},
-	{"二一", ErrInvalidSequence},
-	{"二一十", ErrInvalidSequence},
-	{"一二十", ErrInvalidSequence},
-	{"十二一", ErrInvalidSequence},
-	{"十一二", ErrInvalidSequence},
-	{"十百", ErrInvalidSequence},
-	{"十千", ErrInvalidSequence},
-	{"十千", ErrInvalidSequence},
-	{"十千", ErrInvalidSequence},
-	{"一〇", ErrInvalidSequence},
-	{"一零", ErrInvalidSequence},
-	{"〇一", ErrUnexpectedRune},
-	{"零一", ErrUnexpectedRune},
-	{"二十一十", ErrInvalidSequence},
-	{"一十二十", ErrInvalidSequence},
-	{"一万二万", ErrInvalidSequence},
-	{"二万一万", ErrInvalidSequence},
-	{string(utf8.RuneError), ErrEncoding},
-	{string(utf8.RuneError) + "一", ErrEncoding},
-	{"一" + string(utf8.RuneError), ErrEncoding},
-}
-
 func TestParseInt(t *testing.T) {
-	for _, tc := range parseCases {
-		t.Run(tc.Text, func(t *testing.T) {
-			actual, err := ParseInt(tc.Text)
-			if err != nil {
-				t.Errorf("err: %v", err)
-			}
-			if actual != tc.Expected {
-				t.Errorf("expected: %d, actual: %d", tc.Expected, actual)
-			}
+	testParse(t, commonTestCases, ParseInt)
+	testParse(t, boundaryTestCases, ParseInt)
+	testParse(t, bankNoteTestCases, ParseInt)
+	testParse(t, parseTestCases, ParseInt)
+}
+
+func TestParseIntError(t *testing.T) {
+	testParseError(t, commonErrorCases, ParseInt)
+	testParseError(t, intOverflowTestCases, ParseInt)
+}
+
+func TestParseUint(t *testing.T) {
+	testParse(t, uintTestCases, ParseUint)
+}
+
+func TestParseUintError(t *testing.T) {
+	testParseError(t, uintOverflowTestCases, ParseUint)
+}
+
+func TestParseSerialInt(t *testing.T) {
+	testParse(t, serialTestCases, ParseSerialInt)
+}
+
+func testParse[T comparable](t *testing.T, tcs []testCase[T], fn func(string) (T, error)) {
+	for _, tc := range tcs {
+		t.Run(tc.String, func(st *testing.T) {
+			actual, err := fn(tc.String)
+			expectEqual(st, tc.Value, actual)
+			expectErrNil(st, err)
 		})
 	}
 }
 
-func TestParseUintMax(t *testing.T) {
-	expected := uint64(math.MaxUint64)
-	actual, err := ParseUint("千八百四十四京六千七百四十四兆七百三十七億九百五十五万千六百十五")
-	if err != nil {
-		t.Errorf("err: %v", err)
+func testParseError[T comparable](t *testing.T, tcs []parseErrorTestCase, fn func(string) (T, error)) {
+	for _, tc := range tcs {
+		t.Run(tc.Text, func(st *testing.T) {
+			var zero T
+			actualValue, actualErr := fn(tc.Text)
+			expectEqual(st, zero, actualValue)
+			expectErrIs(st, tc.Expected, actualErr)
+		})
 	}
-	if actual != expected {
-		t.Errorf("expected: %d, actual: %d", expected, actual)
-	}
-}
-
-func TestParseUintOverflowOne(t *testing.T) {
-	testParseUintError(t, "千八百四十四京六千七百四十四兆七百三十七億九百五十五万千六百十六", ErrOverflow)
-}
-
-func TestParseUintOverflowTwoTimes(t *testing.T) {
-	testParseUintError(t, "二千八百四十四京六千七百四十四兆七百三十七億九百五十五万千六百十五", ErrOverflow)
-}
-
-func TestParseUintOverflowKanji(t *testing.T) {
-	testParseUintError(t, "一垓", ErrOverflow)
 }
 
 func TestParseUintUnexpectedRune(t *testing.T) {
@@ -192,33 +76,22 @@ func TestParseUintUnexpectedRuneAfterValid(t *testing.T) {
 	}
 }
 
-func TestParseUintError(t *testing.T) {
-	for _, tc := range parseErrorCases {
-		testParseUintError(t, tc.Text, tc.Expected)
-	}
-}
-
-func testParseUintError(t *testing.T, str string, expectedErr error) {
-	t.Run(str, func(t *testing.T) {
-		actualValue, actualErr := ParseUint(str)
-		if !errors.Is(actualErr, expectedErr) {
-			t.Errorf("expected: %v, actual: %v, result: %d", expectedErr, actualErr, actualValue)
-		}
-	})
+func TestParseSerialIntError(t *testing.T) {
+	testParseError(t, parseSerialErrorCases, ParseSerialInt)
 }
 
 func BenchmarkParseInt(b *testing.B) {
-	for _, tc := range parseCases {
-		b.Run(tc.Text, func(b *testing.B) {
+	for _, tc := range commonTestCases {
+		b.Run(tc.String, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				ParseInt(tc.Text)
+				ParseInt(tc.String)
 			}
 		})
 	}
 }
 
 func BenchmarkParseUint(b *testing.B) {
-	for _, tc := range parseCases {
+	for _, tc := range commonErrorCases {
 		if strings.HasPrefix(tc.Text, negativePrefix) {
 			continue
 		}
@@ -231,7 +104,7 @@ func BenchmarkParseUint(b *testing.B) {
 }
 
 func BenchmarkQuickParseUint(b *testing.B) {
-	for _, tc := range []parseTestCase{
+	for _, tc := range []testCase[int64]{
 		{"〇", 0},
 		{"一", 1},
 		{"百二十三", 123},
@@ -240,9 +113,9 @@ func BenchmarkQuickParseUint(b *testing.B) {
 		{"三百四十五万六千七百八十九", 3_456_789},
 		{"九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七", math.MaxInt64},
 	} {
-		b.Run(tc.Text, func(b *testing.B) {
+		b.Run(tc.String, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				ParseUint(tc.Text)
+				ParseUint(tc.String)
 			}
 		})
 	}

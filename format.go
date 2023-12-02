@@ -31,7 +31,36 @@ func AppendUint(dst []byte, u uint64) []byte {
 	return formatUnsigned(dst, u)
 }
 
-// FormatInt returns the given integer as a string of japanese numerals.
+func AppendSerialInt(dst []byte, i int64) []byte {
+	var u uint64
+	if i < 0 {
+		u = uint64(-i)
+		dst = append(dst, negativePrefix...)
+	} else {
+		u = uint64(i)
+	}
+	return AppendSerialUint(dst, u)
+}
+
+func AppendSerialUint(dst []byte, u uint64) []byte {
+	if u < 10 {
+		return append(dst, serialInts[int(u)]...)
+	}
+	var buffer [19]string
+	b := buffer[:0]
+	for u > 0 {
+		r := u % 10
+		u = u / 10
+		c := serialInts[int(r)]
+		b = append(b, c)
+	}
+	for i := len(b) - 1; i >= 0; i -= 1 {
+		dst = append(dst, b[i]...)
+	}
+	return dst
+}
+
+// FormatInt returns the given integer as a string of Japanese numerals.
 func FormatInt(i int64) string {
 	if 0 <= i && i < numberOfFastSmalls {
 		return formatSmall(int(i))
@@ -48,13 +77,42 @@ func FormatInt(i int64) string {
 	return unsafe.String(unsafe.SliceData(dst), len(dst))
 }
 
-// FormatUint returns the given unsigned integer as a string of japanese numerals.
+// FormatUint returns the given unsigned integer as a string of Japanese numerals.
 func FormatUint(u uint64) string {
 	if u < numberOfFastSmalls {
 		return formatSmall(int(u))
 	}
 	dst := make([]byte, 0, initialFormatBufferSize)
 	dst = formatUnsigned(dst, u)
+	return unsafe.String(unsafe.SliceData(dst), len(dst))
+}
+
+// FormatSerialInt returns the given integer as a string of Japanese numerals
+// where the decimal digits 0 to 9 are replaced by the kanjis 〇 to 九.
+func FormatSerialInt(i int64) string {
+	if 0 <= i && i < 10 {
+		return serialInts[i]
+	}
+	dst := make([]byte, 0, initialFormatBufferSize)
+	var u uint64
+	if i < 0 {
+		u = uint64(-i)
+		dst = append(dst, negativePrefix...)
+	} else {
+		u = uint64(i)
+	}
+	dst = AppendSerialUint(dst, u)
+	return unsafe.String(unsafe.SliceData(dst), len(dst))
+}
+
+// FormatSerialInt returns the given unsigned integer as a string of Japanese
+// numerals where the decimal digits 0 to 9 are replaced by the kanjis 〇 to 九.
+func FormatSerialUint(u uint64) string {
+	if u < 10 {
+		return serialInts[u]
+	}
+	dst := make([]byte, 0, initialFormatBufferSize)
+	dst = AppendSerialUint(dst, u)
 	return unsafe.String(unsafe.SliceData(dst), len(dst))
 }
 
@@ -106,7 +164,7 @@ func formatAppend(dst []byte, u uint64, kanji string, kanjiValue uint64, multipl
 	return dst, u - totalValue
 }
 
-// FormatBigInt returns the given big integer as a string of japanese numerals.
+// FormatBigInt returns the given big integer as a string of Japanese numerals.
 // Supports only numbers |i| < 10^72.
 func FormatBigInt(i *big.Int) string {
 	if i.IsInt64() {
@@ -189,4 +247,8 @@ var smallInts = [...]string{
 
 func formatSmall(i int) string {
 	return smallInts[i]
+}
+
+var serialInts = [...]string{
+	"〇", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
 }

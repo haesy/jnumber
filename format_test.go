@@ -1,169 +1,64 @@
 package jnumber
 
 import (
-	"math"
 	"math/big"
 	"testing"
 )
 
-type formatIntTestCase struct {
-	Expected string
-	Number   int64
-}
-
-type formatUntTestCase struct {
-	Expected string
-	Number   uint64
-}
-
-var formatIntCases = []formatIntTestCase{
-	{"零", 0},
-	{"一", 1},
-	{"二", 2},
-	{"三", 3},
-	{"四", 4},
-	{"五", 5},
-	{"六", 6},
-	{"七", 7},
-	{"八", 8},
-	{"九", 9},
-	{"十", 10},
-	{"百", 100},
-	{"千", 1_000},
-	{"一万", 10_000},
-	{"一億", i億},
-	{"一兆", i兆},
-	{"一京", i京},
-	{"十一", 11},
-	{"十二", 12},
-	{"十三", 13},
-	{"十四", 14},
-	{"十五", 15},
-	{"十六", 16},
-	{"十七", 17},
-	{"十八", 18},
-	{"十九", 19},
-	{"二十", 20},
-	{"二十一", 21},
-	{"二十二", 22},
-	{"二十三", 23},
-	{"二十四", 24},
-	{"二十五", 25},
-	{"二十六", 26},
-	{"二十七", 27},
-	{"二十八", 28},
-	{"二十九", 29},
-	{"三十", 30},
-	{"三十一", 31},
-	{"三十二", 32},
-	{"三十三", 33},
-	{"三十四", 34},
-	{"三十五", 35},
-	{"三十六", 36},
-	{"三十七", 37},
-	{"三十八", 38},
-	{"三十九", 39},
-	{"九十九", 99},
-	{"百一", 101},
-	{"百十", 110},
-	{"百十一", 111},
-	{"百二十一", 121},
-	{"百二十二", 122},
-	{"百二十三", 123},
-	{"百三十三", 133},
-	{"百九十九", 199},
-	{"二百", 200},
-	{"二百一", 201},
-	{"二百十", 210},
-	{"二百十一", 211},
-	{"二百九十九", 299},
-	{"三百", 300},
-	{"千四", 1_004},
-	{"千三十四", 1_034},
-	{"千二百三十四", 1_234},
-	{"二千", 2_000},
-	{"二万", 20_000},
-	{"一万二千三百四十五", 12_345},
-	{"二十三万四千五百六十七", 234_567},
-	{"三百四十五万六千七百八十九", 3_456_789},
-	{"二億", 2 * i億},
-	{"二兆", 2 * i兆},
-	{"二京", 2 * i京},
-	{"九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百七", math.MaxInt64},
-	{negativePrefix + "九百二十二京三千三百七十二兆三百六十八億五千四百七十七万五千八百八", math.MinInt64},
-}
-
-var formatUintCases = []formatUntTestCase{
-	{"零", 0},
-	{"十", 10},
-	{"百", 100},
-	{"千", 1_000},
-	{"一万", 10_000},
-	{"一億", i億},
-	{"一兆", i兆},
-	{"一京", i京},
-	{"千八百四十四京六千七百四十四兆七百三十七億九百五十五万千六百十五", math.MaxUint64},
-}
-
 func TestAppendInt(t *testing.T) {
-	const prefix = "prefix "
-	for _, tc := range formatIntCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			dst := make([]byte, 0)
-			dst = append(dst, prefix...)
-			dst = AppendInt(dst, tc.Number)
-			actual := string(dst)
-			expected := prefix + tc.Expected
-			if actual != expected {
-				t.Errorf("expected: %s, actual: %s", expected, actual)
-			}
-		})
-	}
-}
-
-func TestFormatInt(t *testing.T) {
-	for _, tc := range formatIntCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			actual := FormatInt(tc.Number)
-			if actual != tc.Expected {
-				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
-			}
-		})
-	}
+	testAppend(t, commonTestCases, AppendInt)
+	testAppend(t, boundaryTestCases, AppendInt)
 }
 
 func TestAppendUint(t *testing.T) {
+	testAppend(t, uintTestCases, AppendUint)
+}
+
+func TestAppendSerialInt(t *testing.T) {
+	testAppend(t, serialTestCases, AppendSerialInt)
+}
+
+func TestFormatInt(t *testing.T) {
+	testFormat(t, commonTestCases, FormatInt)
+	testFormat(t, boundaryTestCases, FormatInt)
+}
+
+func TestFormatUint(t *testing.T) {
+	testFormat(t, uintTestCases, FormatUint)
+}
+
+func TestFormatSerialInt(t *testing.T) {
+	testFormat(t, serialTestCases, FormatSerialInt)
+}
+
+func testAppend[T comparable](t *testing.T, tcs []testCase[T], fn func([]byte, T) []byte) {
 	const prefix = "prefix "
-	for _, tc := range formatUintCases {
-		t.Run(tc.Expected, func(t *testing.T) {
+	for _, tc := range tcs {
+		t.Run(tc.String, func(st *testing.T) {
 			dst := make([]byte, 0)
 			dst = append(dst, prefix...)
-			dst = AppendUint(dst, tc.Number)
+			dst = fn(dst, tc.Value)
 			actual := string(dst)
-			expected := prefix + tc.Expected
-			if actual != expected {
-				t.Errorf("expected: %s, actual: %s", expected, actual)
-			}
+			expected := prefix + tc.String
+			expectEqual(st, expected, actual)
 		})
 	}
 }
 
-func TestFormatUint(t *testing.T) {
-	for _, tc := range formatUintCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			actual := FormatUint(tc.Number)
-			if actual != tc.Expected {
-				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
-			}
+func testFormat[T comparable](t *testing.T, tcs []testCase[T], fn func(T) string) {
+	for _, tc := range tcs {
+		t.Run(tc.String, func(st *testing.T) {
+			actual := fn(tc.Value)
+			expectEqual(st, tc.String, actual)
 		})
 	}
 }
 
 func BenchmarkFormatInt(b *testing.B) {
-	for _, tc := range formatIntCases {
-		b.Run(tc.Expected, func(b *testing.B) {
+	for _, tc := range commonTestCases {
+		b.Run(tc.String, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				FormatInt(tc.Number)
+				FormatInt(tc.Value)
 			}
 		})
 	}
@@ -255,24 +150,20 @@ var formatBigIntCases = []formatBigIntTestCase{
 }
 
 func TestFormatBigIntSmall(t *testing.T) {
-	for _, tc := range formatIntCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			i := big.NewInt(tc.Number)
+	for _, tc := range commonTestCases {
+		t.Run(tc.String, func(st *testing.T) {
+			i := big.NewInt(tc.Value)
 			actual := FormatBigInt(i)
-			if actual != tc.Expected {
-				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
-			}
+			expectEqual(st, tc.String, actual)
 		})
 	}
 }
 
 func TestFormatBigInt(t *testing.T) {
 	for _, tc := range formatBigIntCases {
-		t.Run(tc.Expected, func(t *testing.T) {
+		t.Run(tc.Expected, func(st *testing.T) {
 			actual := FormatBigInt(tc.Number)
-			if actual != tc.Expected {
-				t.Errorf("expected: %s, actual: %s", tc.Expected, actual)
-			}
+			expectEqual(st, tc.Expected, actual)
 		})
 	}
 }

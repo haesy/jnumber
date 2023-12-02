@@ -127,6 +127,55 @@ loop:
 	return sum, nil
 }
 
+// ParseSerialInt returns the signed integer represented by the given japanese numerals.
+func ParseSerialInt(s string) (int64, error) {
+	abs := strings.TrimPrefix(s, negativePrefix)
+	isNegative := s != abs
+	sum, err := ParseSerialUint(abs)
+	if err != nil {
+		return 0, err
+	}
+	if isNegative {
+		if sum > -math.MinInt64 {
+			return 0, ErrOverflow
+		}
+		return -int64(sum), nil
+	}
+	if sum > math.MaxInt64 {
+		return 0, ErrOverflow
+	}
+	return int64(sum), nil
+}
+
+// ParseSerialUint returns the unsigned integer represented by the given japanese numerals.
+func ParseSerialUint(s string) (uint64, error) {
+	n := len(s)
+	if n == 0 {
+		return 0, ErrEmpty
+	}
+	sum := uint64(0)
+	i := 0
+	for ; i < n-2; i += utf8KanjiBytes {
+		r := decodeUtf8Kanji(i, s)
+		value, ok := ValueOf(r)
+		if value < 10 && ok {
+			var carry uint64
+			overflow, tmpSum := bits.Mul64(sum, 10)
+			sum, carry = bits.Add64(tmpSum, value, 0)
+			if carry > 0 || overflow > 0 {
+				return 0, ErrOverflow
+			}
+		} else {
+			return 0, ErrInvalidSequence
+		}
+	}
+	// are there still runes in the string after we are done?
+	if i < n {
+		return 0, checkUnexpectedRune(s[i:])
+	}
+	return sum, nil
+}
+
 // if our custom decoding fails, use the correct implementation from the standard library.
 func checkUnexpectedRune(s string) error {
 	r, _ := utf8.DecodeRuneInString(s)

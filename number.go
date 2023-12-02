@@ -42,8 +42,12 @@ func (e *UnexpectedRuneError) Error() string {
 	return fmt.Sprintf("unexpected rune: %s", string(e.Actual))
 }
 
-func (e *UnexpectedRuneError) Unwrap() error {
-	return ErrUnexpectedRune
+func (e *UnexpectedRuneError) Is(err error) bool {
+	if err == ErrUnexpectedRune {
+		return true
+	}
+	castedErr, ok := err.(*UnexpectedRuneError)
+	return ok && castedErr.Actual == e.Actual && castedErr.Expected == e.Expected
 }
 
 const (

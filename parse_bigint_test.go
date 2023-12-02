@@ -83,9 +83,9 @@ var parseBigIntCases = []parseBigIntTestCase{
 }
 
 func TestParseBigIntPrimitiveTypeCases(t *testing.T) {
-	for _, tc := range parseCases {
-		t.Run(tc.Text, func(t *testing.T) {
-			actual, err := ParseBigInt(tc.Text)
+	for _, tc := range commonTestCases {
+		t.Run(tc.String, func(t *testing.T) {
+			actual, err := ParseBigInt(tc.String)
 			if err != nil {
 				t.Errorf("err: %v", err)
 			}
@@ -93,8 +93,8 @@ func TestParseBigIntPrimitiveTypeCases(t *testing.T) {
 				t.Errorf("expected: not nil and IsInt64, actual: %s", actual)
 				return
 			}
-			if actualInt64 := actual.Int64(); actualInt64 != tc.Expected {
-				t.Errorf("expected: %d, actual: %d", tc.Expected, actualInt64)
+			if actualInt64 := actual.Int64(); actualInt64 != tc.Value {
+				t.Errorf("expected: %d, actual: %d", tc.Value, actualInt64)
 			}
 		})
 	}
@@ -115,7 +115,7 @@ func TestParseBigInt(t *testing.T) {
 }
 
 func TestParseBigIntError(t *testing.T) {
-	for _, tc := range parseErrorCases {
+	for _, tc := range commonErrorCases {
 		testParseBigIntError(t, tc.Text, tc.Expected)
 	}
 	// 恒河沙
